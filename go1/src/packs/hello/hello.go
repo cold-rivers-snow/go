@@ -1118,4 +1118,361 @@ L:
 		numbers[i],numbers[j] = numbers[j],numbers[i]
 	}
 
-	
+	//goto
+	//1、不允许因使用goto而使当前作用也中的变量进入该作用域.
+	goto L
+	v := "B"
+L:
+	fmt.Printf("V:%v\n",v)
+
+	//修改：
+	v := "B"
+	goto L
+L:
+	fmt.Printf("V:%v\n",v)			//因为goto跳过了v的声明
+
+	//2、goto直属语句为A ，标记语句为B，如果B 不是A 的外层语句，就不合法。
+
+	if n%3 != 0{
+		goto L1
+	}
+
+	switch{
+	case n%7 == 0:
+		fmt.Printf("%v is a common multiple of 7 and 3.\n",n)
+	default:
+	L1:
+		fmt.Printf("%v isn't a multiple of 3.\n",n)
+	}
+
+	//修改为
+	if n%3 != 0{
+		goto L1
+	}
+
+	switch{
+	case n%7 == 0:
+		fmt.Printf("%v is a common multiple of 7 and 3.\n",n)
+	default:
+	}
+
+	L1:
+	fmt.Printf("%v isn't a multiple of 3.\n",n)	//标记语句在switch中，不是if的外层语句。
+
+
+
+func findEvildoer(name string)string{
+	var evildoer string
+	for _,r := range name{
+		switch{
+		case r >= '\u0041' && r <= '\u005a':	//a-z
+		case r >= '\u0061' && r <= '\u007a':	//A-Z
+		case r >= '\u4e00' && r <= '\u9fbf':	//中文字符
+		default:
+			evildoer = string(r)
+			goto L2
+		}
+	}
+	goto L3
+L2:
+	fmt.Printf("The first evildoer of name '%s' is '%s'!\n",name,evildoer)
+L3:
+	return evildoer
+}
+
+
+func findEvildoer(name string)string{
+	var evildoer string
+L2:
+	for _,r := range name{
+		switch{
+		case r >= '\u0041' && r <= '\u005a':	//a-z
+		case r >= '\u0061' && r <= '\u007a':	//A-Z
+		case r >= '\u4e00' && r <= '\u9fbf':	//中文字符
+		default:
+			evildoer = string(r)
+			break L2
+		}
+	}
+	if evildoer != ""{
+		fmt.Printf("The first evildoer of name '%s' is '%s'!\n",name,evildoer)
+	}
+	return evildoer
+}
+
+
+func checkValidity(name string) error{
+	var errDetail string
+	for i,r := range name{
+		switch{
+		case r >= '\u0041' && r <= '\u005a':	//a-z
+		case r >= '\u0061' && r <= '\u007a':	//A-Z
+		case r >= '\u0030' && r <= '\u0039':	//0-9
+		case r == '_' || r == '-' || r == '.':	//其他允许的字符
+		default:
+			errDetail = "The name contains some illegal characters"
+			goto L3
+		}
+		if i== 0{
+			switch r {
+			case '_':
+				errDetail = "The name can not begin with a '_'."
+				goto L3
+			case '-':
+				errDetail = "The name can not begin with a '-'."
+				goto L3
+			case '.':
+				errDetail = "The name can not begin with a '.'."
+				goto L3
+			}
+		}
+	}
+	return nil
+L3:
+	return error.New("Validity check failure:" +errDetail)
+}
+
+
+//defer  
+//只能出现在函数或方法内部。
+//当外围函数的函数体中的相应的语句全部被正常执行完毕的时候，只有在该函数中的所有defer语句被执行完毕之后该函数才会真正的结束执行
+//当外围函数体中的return被指向的时候，只有在该函数中的所有defer都被执行完毕之后该函数才会真正的返回。
+//当外围函数发生恐慌的时候，只有在该函数的所有defer都指向完毕之后该运行恐慌才会真正的被扩散到函数的调用处。
+
+func isPositiveEvenNumber(number int) (result bool){
+	defer fmt.Println("done.")
+	if number < 0 {
+		panic(errors.New("The number is a negative number!"))
+	}
+	if number % 2 == 0{
+		return true
+	}
+	return
+}
+
+//defer:收尾任务总会被执行，我们可以把它们放到外围函数的函数体中的任何地方，而不是放在函数体的最后。
+//匿名函数
+defer func(){
+	fmt.Println("The finishing touches.")
+}()
+
+func printNumbers(){
+	for i := 0;i < 5;i++{
+		defer fmt.Printf("%d",i)
+	}
+}
+// 4 3 2 1 0
+
+func appendNumbers(ints []int) (result []int){
+	result = append(ints,1)
+	defer func(){
+		result = append(result,2)
+	}()
+	result = append(result,3)
+	defer func(){
+		result = append(result,4)
+	}()
+	result = append(result,5)
+	defer func(){
+		result = append(result,6)
+	}()
+	return result
+}
+//如果传入为[]int{0},则结果为[]int{0,1,3,5,6,4,2}
+
+func printNumbers(){
+	for i := 0;i < 5;i++{
+		defer fun(){
+			fmt.Println("%d",i)
+		}()
+	}
+}
+//5 5 5 5 5		//因为当延迟函数被逆序的逐个放入，此时i为5,因此输出5 5 5 5 5
+
+//修改为
+func printNumbers(){
+	for i := 0;i < 5;i++{
+		defer fun(i int){
+			fmt.Println("%d",i)
+		}(i)	
+	}
+}
+//4 3 2 1 0
+
+//如果延迟函数是一个匿名函数，并且外围函数的声明中存在命名的结果声明，那么在延迟函数代码是可以对命名结果进行访问和修改的。
+func modify(n int) (number int){
+	defer func(){
+		number+= n
+	}()
+	number++
+	return
+}
+//结果总为3
+//先指向number++,再执行number += n
+//虽然延迟函数声明中可以包含结果声明，但是返回的结果值会在它被指向完毕时被丢弃。
+func modify(n int) (number int){
+	defer func(plus int) (result int){
+		result = n + plus
+		number+= result
+		return
+	}(3)
+	number++
+	return
+}//6
+
+
+//error内建接口
+type error interface{
+	Error() string
+}
+
+func New(text string) error{
+	return &errorString{text}
+}
+
+type errorString struct{
+	s string
+}
+
+func (e *errorString) Error() string{
+	return e.s
+}
+
+var err error = errors.New("A normal error");
+fmt.Println(err);
+
+err2 := fmt.Errorf("%s\n","A normal error");
+
+//os.PathError是error接口类型的实现类型。
+type PathError struct{
+	Op string
+	Path string
+	Err error
+}
+
+func (e *PathError) Error() string{
+	return e.Op + " " + e.Path + " :" + e.Err.Error()
+}
+
+file,err3 := os.Open("/etc/profile")
+if err3 != nil{
+	if pe,ok := err3.(*os.PathError); ok{
+		fmt.Printf("Path Error : %s (op = %s,path = %s)\n",pe.Err,pe.Op,pe.Path)
+	}else {
+		fmt.Printf("Uknown Error : %s\n",err3)
+	}
+}
+
+r := bufio.NewReader(file)		//创建一个可读取文件内容的读取器
+var buf bytes.Buffer		//缓存从文件读取出来的内容
+for{
+	byteArray,_,err4 := r.ReadLine()			//
+	if err4 != nil{
+		if err4 == io.EOF{		//io.EOF的声明为：var EOF = error.New("EOF")
+			break
+		}else{
+			fmt.Printf("Read Error:%s\n",err4)
+			break
+		}
+	}else {
+		buf.Write(byteArray)
+	}
+}
+
+
+
+
+type Error interface{
+	error
+	Timeout() bool
+	Temporary() bool
+}
+
+if nerError,ok := err.(net.Error); ok && netErr.Temporary(){
+	//
+}
+
+
+//panic
+
+func outerFunc(){
+	innerFunc()
+}
+
+func innerFunc(){
+	panic(errors.New("A intended fatal error!"))
+}
+
+myIndex := 4
+ia := [3]int{1,2,3}
+_ = ia[myIndex]		// 数组越界
+
+type Error interface{
+	error
+	RuntimeError()
+}
+
+
+//recover//拦截恐慌
+
+defer func(){
+	if r := recover(); r != nil{
+		fmt.Printf("Recovered panic:%s\n",r)
+	}
+}
+
+func (s *ss) Token(skipSpace bool,f func(rune) bool) (tok []byte,err error){
+	defer func(){
+		if e := recover(); e != nil{
+			if se,ok := e.(scanError);ok{
+				err = se.err
+			}else{
+				panic(e)
+			}
+		}
+	}()
+}
+
+
+
+//完整代码：//处理恐慌：需理解
+func main(){
+	fethcDemo()
+	fmt.Println("The main function si executed")
+}
+
+func fethcDemo(){
+	defer func(){
+		if v:= recover(); v != nil{
+			fmt.Printf("Recovered a panic.[index = %d]\n",v)
+		}
+	}()
+	ss := []string{"A","B","C"}
+	fmt.Printf("Fetch the elements in %v one by one ...\n",ss)
+	fetchElement(ss,0)
+	fmt.Println("The elements fetching is done.")			//永远不会执行
+}
+
+func fetchElement(ss []string,index int) (element string){
+	if index >= len(ss){
+		fmt.Printf("Occur a panic ! [index=%d]\n",index)
+		panic(index)
+	}
+	fmt.Prinf("Fetching the element...[index=%d]\n",index)
+	element = ss[index]
+	defer fmt.Printf("The element is \"%s\".[index=%d]\n",element,index)
+	fetchElement(ss,index+1)
+	return
+}
+//结果：
+// 1、Fetch the elements in [A B C ] one by one ...
+// 2、Fetching the element...[index=0]
+// 3、Fetching the element...[index=1]
+// 4、Fetching the element...[index=2]
+// 5、Occur a panic ! [index=3]
+// 6、The element is "C".[index=2]
+// 7、The element is "B".[index=1]
+// 8、The element is "A".[index=0]
+// 9、Recovered a panic.[index = 3]
+// 10、The main function si executed
+
