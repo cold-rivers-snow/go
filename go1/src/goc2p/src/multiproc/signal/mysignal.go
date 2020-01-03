@@ -105,7 +105,7 @@ func sigSendingDemo() {
 func getPids(strs []string) ([]int, error) {
 	pids := make([]int, 0)
 	for _, str := range strs {
-		pid, err := strconv.Atoi(strings.TrimSpace(str))
+		pid, err := strconv.Atoi(strings.TrimSpace(str)) //将string转换成int类型。
 		if err != nil {
 			return nil, err
 		}

@@ -12,7 +12,7 @@ func ExampleHello() {
 
 	// Output: Hello, Golang~
 	// Hello, Golang~
-	// Hello, Golang~
+	// Hello, Golang~			
 }
 
 func TestOne(t *testing.T) {
